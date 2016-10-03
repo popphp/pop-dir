@@ -1,2 +1,4 @@
-# pop-dir
-Pop Directory Component
+pop-dir
+=======
+
+Version 3, in development
