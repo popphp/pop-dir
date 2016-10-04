@@ -79,18 +79,16 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function __construct($dir, array $options = [])
     {
-        // Check to see if the directory exists.
-        if (!file_exists($dir)) {
-            throw new Exception('Error: The directory does not exist.');
-        }
-
         // Set the directory path.
-        if ((strpos($dir, '/') !== false) && (DIRECTORY_SEPARATOR != '/')) {
-            $this->path = str_replace('/', "\\", $dir);
-        } else if ((strpos($dir, "\\") !== false) && (DIRECTORY_SEPARATOR != "\\")) {
+        if ((strpos($dir, "\\") !== false) && (DIRECTORY_SEPARATOR != "\\")) {
             $this->path = str_replace("\\", '/', $dir);
         } else {
             $this->path = $dir;
+        }
+
+        // Check to see if the directory exists.
+        if (!file_exists($this->path )) {
+            throw new Exception('Error: The directory does not exist');
         }
 
         // Trim the trailing slash.
@@ -304,6 +302,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @param  boolean $remove
      * @param  string  $path
+     * @throws Exception
      * @return void
      */
     public function emptyDir($remove = false, $path = null)
@@ -313,8 +312,8 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
         }
 
         // Get a directory handle.
-        if (!$dh = @opendir($path)) {
-            return;
+        if (!($dh = @opendir($path))) {
+            throw new Exception('Error: Unable to open the directory path');
         }
 
         // Recursively dig through the directory, deleting files where applicable.
@@ -335,7 +334,6 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
             @rmdir($path);
         }
     }
-
 
     /**
      * ArrayAccess offsetExists
@@ -362,23 +360,26 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * ArrayAccess offsetSet
      *
+     * @param  string $offset
+     * @param  mixed  $value
      * @throws Exception
      * @return void
      */
     public function offsetSet($offset, $value)
     {
-        throw new Exception('The directory object is read-only');
+        throw new Exception('Error: The directory object is read-only');
     }
 
     /**
      * ArrayAccess offsetUnset
      *
+     * @param  string $offset
      * @throws Exception
      * @return void
      */
     public function offsetUnset($offset)
     {
-        throw new Exception('The directory object is read-only');
+        throw new Exception('Error: The directory object is read-only');
     }
 
     /**

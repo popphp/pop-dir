@@ -9,6 +9,7 @@ class DirTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructor()
     {
+        $dir = new Dir(__DIR__ . '\tmp\\');
         $dir = new Dir(__DIR__ . '/tmp/');
         $dir = new Dir(__DIR__ . '/tmp/', [
             'absolute'  => false,
@@ -57,6 +58,12 @@ class DirTest extends \PHPUnit_Framework_TestCase
         ]);
         $dir = new Dir(__DIR__ . '/tmp/', [
             'relative'  => true,
+            'recursive' => true,
+            'filesOnly' => false
+        ]);
+        $dir = new Dir(__DIR__ . '/tmp/', [
+            'absolute'  => false,
+            'relative'  => false,
             'recursive' => true,
             'filesOnly' => false
         ]);
@@ -122,6 +129,25 @@ class DirTest extends \PHPUnit_Framework_TestCase
         $dir = new Dir(__DIR__ . '/copy');
         $dir->emptyDir(true);
         $this->assertFileNotExists(__DIR__ . '/copy');
+    }
+
+    public function testCopyToRelative()
+    {
+        mkdir(__DIR__ . '/copy');
+        $dir = new Dir('tmp');
+        $dir->copyTo('copy');
+        $this->assertFileExists(__DIR__ . '/copy/tmp');
+
+        $dir = new Dir(__DIR__ . '/copy');
+        $dir->emptyDir(true);
+        $this->assertFileNotExists(__DIR__ . '/copy');
+    }
+
+    public function testEmptyToBadPath()
+    {
+        $this->expectException('Pop\Dir\Exception');
+        $dir = new Dir(__DIR__ . '/tmp');
+        $dir->emptyDir(false, __DIR__ . '/badpath');
     }
 
     public function testOffsets()
