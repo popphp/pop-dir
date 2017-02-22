@@ -131,18 +131,6 @@ class DirTest extends \PHPUnit_Framework_TestCase
         $this->assertFileNotExists(__DIR__ . '/copy');
     }
 
-    public function testCopyToRelative()
-    {
-        mkdir(__DIR__ . '/copy');
-        $dir = new Dir('tmp');
-        $dir->copyTo('copy');
-        $this->assertFileExists(__DIR__ . '/copy/tmp');
-
-        $dir = new Dir(__DIR__ . '/copy');
-        $dir->emptyDir(true);
-        $this->assertFileNotExists(__DIR__ . '/copy');
-    }
-
     public function testEmptyToBadPath()
     {
         $this->expectException('Pop\Dir\Exception');

@@ -1,6 +1,9 @@
 pop-dir
 =======
 
+[![Build Status](https://travis-ci.org/popphp/pop-dir.svg?branch=master)](https://travis-ci.org/popphp/pop-dir)
+[![Coverage Status](http://cc.popphp.org/coverage.php?comp=pop-dir)](http://cc.popphp.org/pop-dir/)
+
 OVERVIEW
 --------
 `pop-dir` is a component for traversing files within a directory. It is a 
@@ -61,5 +64,5 @@ $dir = new Dir('my-dir');
 $dir->emptyDir(true);
 ```
 
-The `true` flag will remove the actually directory as well.
+The `true` flag will remove the actual directory as well.
 

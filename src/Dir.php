@@ -87,7 +87,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
         }
 
         // Check to see if the directory exists.
-        if (!file_exists($this->path )) {
+        if (!file_exists($this->path)) {
             throw new Exception('Error: The directory does not exist');
         }
 
@@ -274,8 +274,6 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
         if ($full) {
             if (strpos($this->path, DIRECTORY_SEPARATOR) !== false) {
                 $folder = substr($this->path, (strrpos($this->path, DIRECTORY_SEPARATOR) + 1));
-            } else {
-                $folder = $this->path;
             }
 
             if (!file_exists($destination . DIRECTORY_SEPARATOR . $folder)) {
