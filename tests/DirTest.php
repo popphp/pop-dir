@@ -3,8 +3,9 @@
 namespace Pop\Dir\Test;
 
 use Pop\Dir\Dir;
+use PHPUnit\Framework\TestCase;
 
-class DirTest extends \PHPUnit_Framework_TestCase
+class DirTest extends TestCase
 {
 
     public function testConstructor()
