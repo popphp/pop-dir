@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2019 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2020 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -19,9 +19,9 @@ namespace Pop\Dir;
  * @category   Pop
  * @package    Pop\Dir
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2019 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2020 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    3.0.2
+ * @version    3.0.3
  */
 class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
 {
@@ -88,7 +88,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
 
         // Check to see if the directory exists.
         if (!file_exists($this->path)) {
-            throw new Exception('Error: The directory does not exist');
+            throw new Exception("Error: The directory '" . $this->path . "' does not exist");
         }
 
         // Trim the trailing slash.
@@ -311,7 +311,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
 
         // Get a directory handle.
         if (!($dh = @opendir($path))) {
-            throw new Exception('Error: Unable to open the directory path');
+            throw new Exception('Error: Unable to open the directory path "' . $path . '"');
         }
 
         // Recursively dig through the directory, deleting files where applicable.
@@ -443,7 +443,8 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
                 if ($this->absolute) {
                     $f = null;
                     if (!$this->filesOnly) {
-                        $f = ($fileInfo->isDir()) ? (realpath($fileInfo->getPathname())) : realpath($fileInfo->getPathname());
+                        $f = ($fileInfo->isDir()) ?
+                            (realpath($fileInfo->getPathname())) : realpath($fileInfo->getPathname());
                     } else if (!$fileInfo->isDir()) {
                         $f = realpath($fileInfo->getPathname());
                     }
@@ -454,7 +455,8 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
                 } else if ($this->relative) {
                     $f = null;
                     if (!$this->filesOnly) {
-                        $f = ($fileInfo->isDir()) ? (realpath($fileInfo->getPathname())) : realpath($fileInfo->getPathname());
+                        $f = ($fileInfo->isDir()) ?
+                            (realpath($fileInfo->getPathname())) : realpath($fileInfo->getPathname());
                     } else if (!$fileInfo->isDir()) {
                         $f = realpath($fileInfo->getPathname());
                     }
