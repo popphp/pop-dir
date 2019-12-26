@@ -149,7 +149,7 @@ class DirTest extends TestCase
         $this->assertTrue(isset($dir->{0}));
         $this->assertTrue(isset($dir->{'test'}));
         $this->assertTrue($dir->fileExists('test.txt'));
-        $this->assertEquals('test', $dir->{0});
+        $this->assertContains('test', $dir->{0});
     }
 
     public function testSetException()
