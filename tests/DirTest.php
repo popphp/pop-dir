@@ -139,6 +139,30 @@ class DirTest extends TestCase
         $dir->emptyDir(false, __DIR__ . '/badpath');
     }
 
+    public function testMagicMethods()
+    {
+        $dir = new Dir(__DIR__ . '/tmp/', [
+            'relative'  => true,
+            'recursive' => true,
+            'filesOnly' => false
+        ]);
+        $this->assertTrue(isset($dir->{0}));
+        $this->assertTrue(isset($dir->{'test'}));
+        $this->assertTrue($dir->fileExists('test.txt'));
+        $this->assertEquals('test', $dir->{0});
+    }
+
+    public function testSetException()
+    {
+        $this->expectException('Pop\Dir\Exception');
+        $dir = new Dir(__DIR__ . '/tmp/', [
+            'relative'  => true,
+            'recursive' => true,
+            'filesOnly' => false
+        ]);
+        $dir->{5} = 'tmp/file.txt';
+    }
+
     public function testOffsets()
     {
         $dir = new Dir(__DIR__ . '/tmp/', [
@@ -161,7 +185,28 @@ class DirTest extends TestCase
         $dir[5] = 'tmp/file.txt';
     }
 
-    public function testOffsetUnsetException()
+    public function testOffsetUnset()
+    {
+        touch(__DIR__ . '/tmp/unlink1.txt');
+        touch(__DIR__ . '/tmp/unlink2.txt');
+        touch(__DIR__ . '/tmp/unlink3.txt');
+        $dir = new Dir(__DIR__ . '/tmp/', [
+            'relative'  => true,
+            'recursive' => true,
+            'filesOnly' => false
+        ]);
+        $this->assertTrue($dir->fileExists('unlink1.txt'));
+        $this->assertTrue($dir->fileExists('unlink2.txt'));
+        $this->assertTrue($dir->fileExists('unlink3.txt'));
+        unset($dir['unlink1.txt']);
+        unset($dir->{'unlink2.txt'});
+        $dir->deleteFile('unlink3.txt');
+        $this->assertFalse($dir->fileExists('unlink1.txt'));
+        $this->assertFalse($dir->fileExists('unlink2.txt'));
+        $this->assertFalse($dir->fileExists('unlink3.txt'));
+    }
+
+    public function testOffsetUnsetDirException()
     {
         $this->expectException('Pop\Dir\Exception');
         $dir = new Dir(__DIR__ . '/tmp/', [
@@ -169,7 +214,18 @@ class DirTest extends TestCase
             'recursive' => true,
             'filesOnly' => false
         ]);
-        unset($dir[0]);
+        unset($dir['test']);
+    }
+
+    public function testOffsetUnsetFileException()
+    {
+        $this->expectException('Pop\Dir\Exception');
+        $dir = new Dir(__DIR__ . '/tmp/', [
+            'relative'  => true,
+            'recursive' => true,
+            'filesOnly' => false
+        ]);
+        unset($dir['bad']);
     }
 
 }

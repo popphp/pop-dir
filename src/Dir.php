@@ -21,7 +21,7 @@ namespace Pop\Dir;
  * @author     Nick Sagona, III <dev@nolainteractive.com>
  * @copyright  Copyright (c) 2009-2020 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    3.0.3
+ * @version    3.1.0
  */
 class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
 {
@@ -296,6 +296,29 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     }
 
     /**
+     * File exists
+     *
+     * @param  string  $file
+     * @return boolean
+     */
+    public function fileExists($file)
+    {
+        return $this->offsetExists($file);
+    }
+
+    /**
+     * Delete a file
+     *
+     * @param  string  $file
+     * @throws Exception
+     * @return void
+     */
+    public function deleteFile($file)
+    {
+        $this->offsetUnset($file);
+    }
+
+    /**
      * Empty an entire directory
      *
      * @param  boolean $remove
@@ -334,6 +357,53 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     }
 
     /**
+     * Get a file
+     *
+     * @param  string $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return $this->offsetGet($name);
+    }
+
+    /**
+     * Does file exist
+     *
+     * @param  string $name
+     * @return boolean
+     */
+    public function __isset($name)
+    {
+        return $this->offsetExists($name);
+    }
+
+    /**
+     * Set method
+     *
+     * @param  string $name
+     * @param  mixed $value
+     * @throws Exception
+     * @return void
+     */
+    public function __set($name, $value)
+    {
+        $this->offsetSet($name, $value);
+    }
+
+    /**
+     * Unset method
+     *
+     * @param  string $name
+     * @throws Exception
+     * @return void
+     */
+    public function __unset($name)
+    {
+        $this->offsetUnset($name);
+    }
+
+    /**
      * ArrayAccess offsetExists
      *
      * @param  mixed $offset
@@ -341,6 +411,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function offsetExists($offset)
     {
+        if (!is_numeric($offset) && in_array($offset, $this->files)) {
+            $offset = array_search($offset, $this->files);
+        }
         return isset($this->files[$offset]);
     }
 
@@ -377,7 +450,23 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function offsetUnset($offset)
     {
-        throw new Exception('Error: The directory object is read-only');
+        if (!is_numeric($offset) && in_array($offset, $this->files)) {
+            $offset = array_search($offset, $this->files);
+        }
+        if (isset($this->files[$offset])) {
+            if (is_dir($this->path . DIRECTORY_SEPARATOR . $this->files[$offset])) {
+                throw new Exception("Error: The file '" . $this->path . DIRECTORY_SEPARATOR . $this->files[$offset] . "' is a directory");
+            } else if (!file_exists($this->path . DIRECTORY_SEPARATOR . $this->files[$offset])) {
+                throw new Exception("Error: The file '" . $this->path . DIRECTORY_SEPARATOR . $this->files[$offset] . "' does not exist");
+            } else if (!is_writable($this->path . DIRECTORY_SEPARATOR . $this->files[$offset])) {
+                throw new Exception("Error: The file '" . $this->path . DIRECTORY_SEPARATOR . $this->files[$offset] . "' is read-only");
+            } else {
+                unlink($this->path . DIRECTORY_SEPARATOR . $this->files[$offset]);
+                unset($this->files[$offset]);
+            }
+        } else {
+            throw new Exception("Error: The file does not exist");
+        }
     }
 
     /**
