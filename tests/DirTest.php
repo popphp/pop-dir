@@ -129,7 +129,7 @@ class DirTest extends TestCase
 
         $dir = new Dir(__DIR__ . '/copy');
         $dir->emptyDir(true);
-        $this->assertFileNotExists(__DIR__ . '/copy');
+        $this->assertFileDoesNotExist(__DIR__ . '/copy');
     }
 
     public function testEmptyToBadPath()
@@ -149,7 +149,7 @@ class DirTest extends TestCase
         $this->assertTrue(isset($dir->{0}));
         $this->assertTrue(isset($dir->{'test'}));
         $this->assertTrue($dir->fileExists('test.txt'));
-        $this->assertContains('test', $dir->{0});
+        $this->assertStringContainsString('test', $dir->{0});
     }
 
     public function testSetException()

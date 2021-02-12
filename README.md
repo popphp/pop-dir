@@ -1,7 +1,7 @@
 pop-dir
 =======
 
-[![Build Status](https://travis-ci.org/popphp/pop-dir.svg?branch=master)](https://travis-ci.org/popphp/pop-dir)
+[![Build Status](https://github.com/popphp/pop-dir/workflows/phpunit/badge.svg)](https://github.com/popphp/pop-dir/actions)
 [![Coverage Status](http://cc.popphp.org/coverage.php?comp=pop-dir)](http://cc.popphp.org/pop-dir/)
 
 OVERVIEW
