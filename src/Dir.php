@@ -13,6 +13,8 @@
  */
 namespace Pop\Dir;
 
+use ReturnTypeWillChange;
+
 /**
  * Directory class
  *
@@ -123,7 +125,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return int
      */
-    public function count()
+    public function count(): int
     {
         return count($this->files);
     }
@@ -133,7 +135,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return \ArrayIterator
      */
-    public function getIterator()
+    public function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->files);
     }
@@ -409,7 +411,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @param  mixed $offset
      * @return boolean
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         if (!is_numeric($offset) && in_array($offset, $this->files)) {
             $offset = array_search($offset, $this->files);
@@ -423,6 +425,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @param  mixed $offset
      * @return mixed
      */
+    #[ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         return (isset($this->files[$offset])) ? $this->files[$offset] : null;
@@ -436,6 +439,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @throws Exception
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function offsetSet($offset, $value)
     {
         throw new Exception('Error: The directory object is read-only');
@@ -448,6 +452,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @throws Exception
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function offsetUnset($offset)
     {
         if (!is_numeric($offset) && in_array($offset, $this->files)) {
