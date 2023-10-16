@@ -16,6 +16,13 @@ Install `pop-dir` using Composer.
 
     composer require popphp/pop-dir
 
+Or, require it in your composer.json file
+
+    "require": {
+        "popphp/pop-dir" : "^4.0.0"
+    }
+
+
 BASIC USAGE
 -----------
 

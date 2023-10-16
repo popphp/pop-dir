@@ -4,7 +4,7 @@
  *
  * @link       https://github.com/popphp/popphp-framework
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
  */
 
@@ -13,7 +13,10 @@
  */
 namespace Pop\Dir;
 
-use ReturnTypeWillChange;
+use ArrayIterator;
+use DirectoryIterator;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
 
 /**
  * Directory class
@@ -21,54 +24,54 @@ use ReturnTypeWillChange;
  * @category   Pop
  * @package    Pop\Dir
  * @author     Nick Sagona, III <dev@nolainteractive.com>
- * @copyright  Copyright (c) 2009-2023 NOLA Interactive, LLC. (http://www.nolainteractive.com)
+ * @copyright  Copyright (c) 2009-2024 NOLA Interactive, LLC. (http://www.nolainteractive.com)
  * @license    http://www.popphp.org/license     New BSD License
- * @version    3.2.0
+ * @version    4.0.0
  */
 class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
 {
 
     /**
      * The directory path
-     * @var string
+     * @var ?string
      */
-    protected $path = null;
+    protected ?string $path = null;
 
     /**
      * The files within the directory
      * @var array
      */
-    protected $files = [];
+    protected array $files = [];
 
     /**
      * The nested tree map of the directory and its files
      * @var array
      */
-    protected $tree = [];
+    protected array $tree = [];
 
     /**
      * Flag to store the absolute path.
-     * @var boolean
+     * @var bool
      */
-    protected $absolute = false;
+    protected bool $absolute = false;
 
     /**
      * Flag to store the relative path.
-     * @var boolean
+     * @var bool
      */
-    protected $relative = false;
+    protected bool $relative = false;
 
     /**
      * Flag to dig recursively.
-     * @var boolean
+     * @var bool
      */
-    protected $recursive = false;
+    protected bool $recursive = false;
 
     /**
      * Flag to include only files and no directories
-     * @var boolean
+     * @var bool
      */
-    protected $filesOnly = false;
+    protected bool $filesOnly = false;
 
     /**
      * Constructor
@@ -79,10 +82,10 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @param  array   $options
      * @throws Exception
      */
-    public function __construct($dir, array $options = [])
+    public function __construct(string $dir, array $options = [])
     {
         // Set the directory path.
-        if ((strpos($dir, "\\") !== false) && (DIRECTORY_SEPARATOR != "\\")) {
+        if ((str_contains($dir, "\\")) && (DIRECTORY_SEPARATOR != "\\")) {
             $this->path = str_replace("\\", '/', $dir);
         } else {
             $this->path = $dir;
@@ -111,7 +114,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
             $this->setFilesOnly($options['filesOnly']);
         }
 
-        $this->tree[realpath($this->path)] = $this->buildTree(new \DirectoryIterator($this->path));
+        $this->tree[realpath($this->path)] = $this->buildTree(new DirectoryIterator($this->path));
 
         if ($this->recursive) {
             $this->traverseRecursively();
@@ -133,22 +136,22 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Method to iterate over the files
      *
-     * @return \ArrayIterator
+     * @return ArrayIterator
      */
-    public function getIterator(): \ArrayIterator
+    public function getIterator(): ArrayIterator
     {
-        return new \ArrayIterator($this->files);
+        return new ArrayIterator($this->files);
     }
 
     /**
      * Set absolute
      *
-     * @param  boolean $absolute
+     * @param  bool $absolute
      * @return Dir
      */
-    public function setAbsolute($absolute)
+    public function setAbsolute(bool $absolute): Dir
     {
-        $this->absolute = (bool)$absolute;
+        $this->absolute = $absolute;
         if (($this->absolute) && ($this->isRelative())) {
             $this->setRelative(false);
         }
@@ -158,12 +161,12 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Set relative
      *
-     * @param  boolean $relative
+     * @param  bool $relative
      * @return Dir
      */
-    public function setRelative($relative)
+    public function setRelative(bool $relative): Dir
     {
-        $this->relative = (bool)$relative;
+        $this->relative = $relative;
         if (($this->relative) && ($this->isAbsolute())) {
             $this->setAbsolute(false);
         }
@@ -173,33 +176,33 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Set recursive
      *
-     * @param  boolean $recursive
+     * @param  bool $recursive
      * @return Dir
      */
-    public function setRecursive($recursive)
+    public function setRecursive(bool $recursive): Dir
     {
-        $this->recursive = (bool)$recursive;
+        $this->recursive = $recursive;
         return $this;
     }
 
     /**
      * Set files only
      *
-     * @param  boolean $filesOnly
+     * @param  bool $filesOnly
      * @return Dir
      */
-    public function setFilesOnly($filesOnly)
+    public function setFilesOnly(bool $filesOnly): Dir
     {
-        $this->filesOnly = (bool)$filesOnly;
+        $this->filesOnly = $filesOnly;
         return $this;
     }
 
     /**
      * Is absolute
      *
-     * @return boolean
+     * @return bool
      */
-    public function isAbsolute()
+    public function isAbsolute(): bool
     {
         return $this->absolute;
     }
@@ -207,9 +210,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Is relative
      *
-     * @return boolean
+     * @return bool
      */
-    public function isRelative()
+    public function isRelative(): bool
     {
         return $this->relative;
     }
@@ -217,9 +220,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Is recursive
      *
-     * @return boolean
+     * @return bool
      */
-    public function isRecursive()
+    public function isRecursive(): bool
     {
         return $this->recursive;
     }
@@ -227,9 +230,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Is files only
      *
-     * @return boolean
+     * @return bool
      */
-    public function isFilesOnly()
+    public function isFilesOnly(): bool
     {
         return $this->filesOnly;
     }
@@ -237,9 +240,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Get the path
      *
-     * @return string
+     * @return string|null
      */
-    public function getPath()
+    public function getPath(): string|null
     {
         return $this->path;
     }
@@ -249,7 +252,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return $this->files;
     }
@@ -259,7 +262,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return array
      */
-    public function getTree()
+    public function getTree(): array
     {
         return $this->tree;
     }
@@ -267,14 +270,14 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Copy an entire directory recursively to another destination directory
      *
-     * @param  string  $destination
-     * @param  boolean $full
+     * @param  string $destination
+     * @param  bool   $full
      * @return void
      */
-    public function copyTo($destination, $full = true)
+    public function copyTo(string $destination, bool $full = true): void
     {
         if ($full) {
-            if (strpos($this->path, DIRECTORY_SEPARATOR) !== false) {
+            if (str_contains($this->path, DIRECTORY_SEPARATOR)) {
                 $folder = substr($this->path, (strrpos($this->path, DIRECTORY_SEPARATOR) + 1));
             }
 
@@ -285,9 +288,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
         }
 
         foreach (
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($this->path, \RecursiveDirectoryIterator::SKIP_DOTS),
-                \RecursiveIteratorIterator::SELF_FIRST) as $item
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($this->path, RecursiveDirectoryIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST) as $item
         ) {
             if ($item->isDir()) {
                 mkdir($destination . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
@@ -301,9 +304,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * File exists
      *
      * @param  string  $file
-     * @return boolean
+     * @return bool
      */
-    public function fileExists($file)
+    public function fileExists(string $file): bool
     {
         return $this->offsetExists($file);
     }
@@ -315,7 +318,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @throws Exception
      * @return void
      */
-    public function deleteFile($file)
+    public function deleteFile(string $file): void
     {
         $this->offsetUnset($file);
     }
@@ -323,14 +326,14 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Empty an entire directory
      *
-     * @param  boolean $remove
-     * @param  string  $path
+     * @param  bool    $remove
+     * @param  ?string $path
      * @throws Exception
      * @return void
      */
-    public function emptyDir($remove = false, $path = null)
+    public function emptyDir(bool $remove = false, ?string $path = null): void
     {
-        if (null === $path) {
+        if ($path === null) {
             $path = $this->path;
         }
 
@@ -364,7 +367,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @param  string $name
      * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         return $this->offsetGet($name);
     }
@@ -373,9 +376,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * Does file exist
      *
      * @param  string $name
-     * @return boolean
+     * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         return $this->offsetExists($name);
     }
@@ -384,11 +387,11 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * Set method
      *
      * @param  string $name
-     * @param  mixed $value
+     * @param  mixed  $value
      * @throws Exception
      * @return void
      */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
         $this->offsetSet($name, $value);
     }
@@ -400,7 +403,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @throws Exception
      * @return void
      */
-    public function __unset($name)
+    public function __unset(string $name): void
     {
         $this->offsetUnset($name);
     }
@@ -409,9 +412,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * ArrayAccess offsetExists
      *
      * @param  mixed $offset
-     * @return boolean
+     * @return bool
      */
-    public function offsetExists($offset): bool
+    public function offsetExists(mixed $offset): bool
     {
         if (!is_numeric($offset) && in_array($offset, $this->files)) {
             $offset = array_search($offset, $this->files);
@@ -425,8 +428,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      * @param  mixed $offset
      * @return mixed
      */
-    #[ReturnTypeWillChange]
-    public function offsetGet($offset)
+    public function offsetGet(mixed $offset): mixed
     {
         return (isset($this->files[$offset])) ? $this->files[$offset] : null;
     }
@@ -434,13 +436,12 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * ArrayAccess offsetSet
      *
-     * @param  string $offset
-     * @param  mixed  $value
+     * @param  mixed $offset
+     * @param  mixed $value
      * @throws Exception
      * @return void
      */
-    #[ReturnTypeWillChange]
-    public function offsetSet($offset, $value)
+    public function offsetSet(mixed $offset, mixed $value): void
     {
         throw new Exception('Error: The directory object is read-only');
     }
@@ -448,12 +449,11 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * ArrayAccess offsetUnset
      *
-     * @param  string $offset
+     * @param  mixed $offset
      * @throws Exception
      * @return void
      */
-    #[ReturnTypeWillChange]
-    public function offsetUnset($offset)
+    public function offsetUnset(mixed $offset): void
     {
         if (!is_numeric($offset) && in_array($offset, $this->files)) {
             $offset = array_search($offset, $this->files);
@@ -479,9 +479,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return void
      */
-    protected function traverse()
+    protected function traverse(): void
     {
-        foreach (new \DirectoryIterator($this->path) as $fileInfo) {
+        foreach (new DirectoryIterator($this->path) as $fileInfo) {
             if(!$fileInfo->isDot()) {
                 // If absolute path flag was passed, store the absolute path.
                 if ($this->absolute) {
@@ -493,7 +493,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
                     } else if (!$fileInfo->isDir()) {
                         $f = $this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename();
                     }
-                    if (($f !== false) && (null !== $f)) {
+                    if (($f !== false) && ($f !== null)) {
                         $this->files[] = $f;
                     }
                 // If relative path flag was passed, store the relative path.
@@ -506,7 +506,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
                     } else if (!$fileInfo->isDir()) {
                         $f = $this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename();
                     }
-                    if (($f !== false) && (null !== $f)) {
+                    if (($f !== false) && ($f !== null)) {
                         $this->files[] = substr($f, (strlen(realpath($this->path)) + 1));
                     }
                 // Else, store only the directory or file name.
@@ -526,10 +526,10 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @return void
      */
-    protected function traverseRecursively()
+    protected function traverseRecursively(): void
     {
-        $objects = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->path), \RecursiveIteratorIterator::SELF_FIRST
+        $objects = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($this->path), RecursiveIteratorIterator::SELF_FIRST
         );
         foreach ($objects as $fileInfo) {
             if (($fileInfo->getFilename() != '.') && ($fileInfo->getFilename() != '..')) {
@@ -542,7 +542,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
                     } else if (!$fileInfo->isDir()) {
                         $f = realpath($fileInfo->getPathname());
                     }
-                    if (($f !== false) && (null !== $f)) {
+                    if (($f !== false) && ($f !== null)) {
                         $this->files[] = $f;
                     }
                 // If relative path flag was passed, store the relative path.
@@ -554,7 +554,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
                     } else if (!$fileInfo->isDir()) {
                         $f = realpath($fileInfo->getPathname());
                     }
-                    if (($f !== false) && (null !== $f)) {
+                    if (($f !== false) && ($f !== null)) {
                         $this->files[] = substr($f, (strlen(realpath($this->path)) + 1));
                     }
                 // Else, store only the directory or file name.
@@ -572,10 +572,10 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Build the directory tree
      *
-     * @param  \DirectoryIterator $it
+     * @param  DirectoryIterator $it
      * @return array
      */
-    protected function buildTree(\DirectoryIterator $it)
+    protected function buildTree(DirectoryIterator $it): array
     {
         $result = [];
 
@@ -587,8 +587,8 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
             $name = $child->getBasename();
 
             if ($child->isDir()) {
-                $subdir = new \DirectoryIterator($child->getPathname());
-                $result[DIRECTORY_SEPARATOR . $name] = $this->buildTree($subdir);
+                $subDir = new DirectoryIterator($child->getPathname());
+                $result[DIRECTORY_SEPARATOR . $name] = $this->buildTree($subDir);
             } else {
                 $result[] = $name;
             }
