@@ -15,7 +15,7 @@ pop-dir
 
 Overview
 --------
-`pop-dir` is a component for traversing files within a directory.
+`pop-dir` is a component for easily traversing files and subdirectories within a directory.
 
 It is a component of the [Pop PHP Framework](http://www.popphp.org/).
 
