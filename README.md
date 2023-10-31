@@ -19,6 +19,8 @@ Overview
 
 It is a component of the [Pop PHP Framework](http://www.popphp.org/).
 
+[Top](#pop-dir)
+
 Install
 -------
 
@@ -103,6 +105,8 @@ If neither are passed, it will return only the base file names and directory nam
 'file1.txt`
 'file2.txt`
 ```
+
+[Top](#pop-dir)
 
 Empty
 -----
