@@ -4,7 +4,6 @@ pop-dir
 [![Build Status](https://github.com/popphp/pop-dir/workflows/phpunit/badge.svg)](https://github.com/popphp/pop-dir/actions)
 [![Coverage Status](http://cc.popphp.org/coverage.php?comp=pop-dir)](http://cc.popphp.org/pop-dir/)
 
-[![Join the chat at https://popphp.slack.com](https://media.popphp.org/img/slack.svg)](https://popphp.slack.com)
 [![Join the chat at https://discord.gg/TZjgT74U7E](https://media.popphp.org/img/discord.svg)](https://discord.gg/TZjgT74U7E)
 
 * [Overview](#overview)
@@ -17,7 +16,7 @@ Overview
 --------
 `pop-dir` is a component for easily traversing files and subdirectories within a directory.
 
-It is a component of the [Pop PHP Framework](http://www.popphp.org/).
+It is a component of the [Pop PHP Framework](https://www.popphp.org/).
 
 [Top](#pop-dir)
 
