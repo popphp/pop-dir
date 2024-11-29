@@ -30,7 +30,7 @@ Install `pop-dir` using Composer.
 Or, require it in your composer.json file
 
     "require": {
-        "popphp/pop-dir" : "^4.0.0"
+        "popphp/pop-dir" : "^4.0.1"
     }
 
 [Top](#pop-dir)
