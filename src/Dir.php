@@ -24,9 +24,9 @@ use RecursiveDirectoryIterator;
  * @category   Pop
  * @package    Pop\Dir
  * @author     Nick Sagona, III <dev@noladev.com>
- * @copyright  Copyright (c) 2009-2026 NOLA Interactive, LLC.
+ * @copyright  Copyright (c) 2009-2027 NOLA Interactive, LLC.
  * @license    https://www.popphp.org/license     New BSD License
- * @version    4.0.3
+ * @version    4.1.0
  */
 class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
 {
@@ -74,6 +74,12 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     protected bool $filesOnly = false;
 
     /**
+     * Flag set once the initial traversal has completed
+     * @var bool
+     */
+    protected bool $initialized = false;
+
+    /**
      * Constructor
      *
      * Instantiate a directory object
@@ -114,12 +120,31 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
             $this->setFilesOnly($options['filesOnly']);
         }
 
-        $this->tree[realpath($this->path)] = $this->buildTree(new DirectoryIterator($this->path));
+        $this->initialized = true;
+        $this->rebuild();
+    }
 
-        if ($this->recursive) {
-            $this->traverseRecursively();
-        } else {
-            $this->traverse();
+    /**
+     * Rebuild the tree and the flat file list from scratch
+     *
+     * @throws Exception
+     * @return void
+     */
+    protected function rebuild(): void
+    {
+        $this->tree  = [];
+        $this->files = [];
+
+        try {
+            $this->tree[realpath($this->path)] = $this->buildTree(new DirectoryIterator($this->path));
+
+            if ($this->recursive) {
+                $this->traverseRecursively();
+            } else {
+                $this->traverse();
+            }
+        } catch (\UnexpectedValueException $e) {
+            throw new Exception($e->getMessage(), (int)$e->getCode(), $e);
         }
     }
 
@@ -153,7 +178,10 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     {
         $this->absolute = $absolute;
         if (($this->absolute) && ($this->isRelative())) {
-            $this->setRelative(false);
+            $this->relative = false;
+        }
+        if ($this->initialized) {
+            $this->rebuild();
         }
         return $this;
     }
@@ -168,7 +196,10 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     {
         $this->relative = $relative;
         if (($this->relative) && ($this->isAbsolute())) {
-            $this->setAbsolute(false);
+            $this->absolute = false;
+        }
+        if ($this->initialized) {
+            $this->rebuild();
         }
         return $this;
     }
@@ -182,6 +213,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     public function setRecursive(bool $recursive): Dir
     {
         $this->recursive = $recursive;
+        if ($this->initialized) {
+            $this->rebuild();
+        }
         return $this;
     }
 
@@ -194,6 +228,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     public function setFilesOnly(bool $filesOnly): Dir
     {
         $this->filesOnly = $filesOnly;
+        if ($this->initialized) {
+            $this->rebuild();
+        }
         return $this;
     }
 
@@ -277,9 +314,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     public function copyTo(string $destination, bool $full = true): void
     {
         if ($full) {
-            if (str_contains($this->path, DIRECTORY_SEPARATOR)) {
-                $folder = substr($this->path, (strrpos($this->path, DIRECTORY_SEPARATOR) + 1));
-            }
+            $folder = basename($this->path);
 
             if (!file_exists($destination . DIRECTORY_SEPARATOR . $folder)) {
                 mkdir($destination . DIRECTORY_SEPARATOR . $folder);
@@ -347,8 +382,11 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
             if ($obj == '.' || $obj == '..') {
                 continue;
             }
-            if (!@unlink($path . DIRECTORY_SEPARATOR . $obj)) {
-                $this->emptyDir(true, $path . DIRECTORY_SEPARATOR . $obj);
+            $item = $path . DIRECTORY_SEPARATOR . $obj;
+            if (is_dir($item)) {
+                $this->emptyDir(true, $item);
+            } else if (!@unlink($item)) {
+                throw new Exception('Error: Unable to delete the file "' . $item . '"');
             }
         }
 
@@ -430,6 +468,9 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function offsetGet(mixed $offset): mixed
     {
+        if (!is_numeric($offset) && in_array($offset, $this->files)) {
+            $offset = array_search($offset, $this->files);
+        }
         return (isset($this->files[$offset])) ? $this->files[$offset] : null;
     }
 
@@ -482,40 +523,14 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     protected function traverse(): void
     {
         foreach (new DirectoryIterator($this->path) as $fileInfo) {
-            if(!$fileInfo->isDot()) {
-                // If absolute path flag was passed, store the absolute path.
-                if ($this->absolute) {
-                    $f = null;
-                    if (!$this->filesOnly) {
-                        $f = ($fileInfo->isDir()) ?
-                            ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename() . DIRECTORY_SEPARATOR) :
-                            ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename());
-                    } else if (!$fileInfo->isDir()) {
-                        $f = $this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename();
-                    }
-                    if (($f !== false) && ($f !== null)) {
-                        $this->files[] = $f;
-                    }
-                // If relative path flag was passed, store the relative path.
-                } else if ($this->relative) {
-                    $f = null;
-                    if (!$this->filesOnly) {
-                        $f = ($fileInfo->isDir()) ?
-                            ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename() . DIRECTORY_SEPARATOR) :
-                            ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename());
-                    } else if (!$fileInfo->isDir()) {
-                        $f = $this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename();
-                    }
-                    if (($f !== false) && ($f !== null)) {
-                        $this->files[] = substr($f, (strlen(realpath($this->path)) + 1));
-                    }
-                // Else, store only the directory or file name.
-                } else {
-                    if (!$this->filesOnly) {
-                        $this->files[] = ($fileInfo->isDir()) ? ($fileInfo->getFilename()) : $fileInfo->getFilename();
-                    } else if (!$fileInfo->isDir()) {
-                        $this->files[] = $fileInfo->getFilename();
-                    }
+            if (!$fileInfo->isDot()) {
+                $absolutePath = ($fileInfo->isDir()) ?
+                    ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename() . DIRECTORY_SEPARATOR) :
+                    ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename());
+
+                $entry = $this->resolveEntry($fileInfo, $absolutePath);
+                if ($entry !== null) {
+                    $this->files[] = $entry;
                 }
             }
         }
@@ -533,40 +548,38 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
         );
         foreach ($objects as $fileInfo) {
             if (($fileInfo->getFilename() != '.') && ($fileInfo->getFilename() != '..')) {
-                // If absolute path flag was passed, store the absolute path.
-                if ($this->absolute) {
-                    $f = null;
-                    if (!$this->filesOnly) {
-                        $f = ($fileInfo->isDir()) ?
-                            (realpath($fileInfo->getPathname())) : realpath($fileInfo->getPathname());
-                    } else if (!$fileInfo->isDir()) {
-                        $f = realpath($fileInfo->getPathname());
-                    }
-                    if (($f !== false) && ($f !== null)) {
-                        $this->files[] = $f;
-                    }
-                // If relative path flag was passed, store the relative path.
-                } else if ($this->relative) {
-                    $f = null;
-                    if (!$this->filesOnly) {
-                        $f = ($fileInfo->isDir()) ?
-                            (realpath($fileInfo->getPathname())) : realpath($fileInfo->getPathname());
-                    } else if (!$fileInfo->isDir()) {
-                        $f = realpath($fileInfo->getPathname());
-                    }
-                    if (($f !== false) && ($f !== null)) {
-                        $this->files[] = substr($f, (strlen(realpath($this->path)) + 1));
-                    }
-                // Else, store only the directory or file name.
-                } else {
-                    if (!$this->filesOnly) {
-                        $this->files[] = ($fileInfo->isDir()) ? ($fileInfo->getFilename()) : $fileInfo->getFilename();
-                    } else if (!$fileInfo->isDir()) {
-                        $this->files[] = $fileInfo->getFilename();
-                    }
+                $absolutePath = realpath($fileInfo->getPathname());
+
+                $entry = $this->resolveEntry($fileInfo, $absolutePath);
+                if ($entry !== null) {
+                    $this->files[] = $entry;
                 }
             }
         }
+    }
+
+    /**
+     * Resolve the stored value for a traversed file/directory entry, honoring the
+     * absolute/relative/filesOnly flags. Shared by traverse() and traverseRecursively().
+     *
+     * @param  \SplFileInfo $fileInfo
+     * @param  string|false $absolutePath
+     * @return ?string
+     */
+    protected function resolveEntry(\SplFileInfo $fileInfo, string|false $absolutePath): ?string
+    {
+        if ($this->filesOnly && $fileInfo->isDir()) {
+            return null;
+        }
+
+        if ($this->absolute) {
+            return ($absolutePath !== false) ? $absolutePath : null;
+        } else if ($this->relative) {
+            return ($absolutePath !== false) ?
+                substr($absolutePath, (strlen(realpath($this->path)) + 1)) : null;
+        }
+
+        return $fileInfo->getFilename();
     }
 
     /**
@@ -587,8 +600,12 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
             $name = $child->getBasename();
 
             if ($child->isDir()) {
-                $subDir = new DirectoryIterator($child->getPathname());
-                $result[DIRECTORY_SEPARATOR . $name] = $this->buildTree($subDir);
+                if ($this->recursive && !$child->isLink()) {
+                    $subDir = new DirectoryIterator($child->getPathname());
+                    $result[DIRECTORY_SEPARATOR . $name] = $this->buildTree($subDir);
+                } else {
+                    $result[DIRECTORY_SEPARATOR . $name] = [];
+                }
             } else {
                 $result[] = $name;
             }

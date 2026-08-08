@@ -228,4 +228,140 @@ class DirTest extends TestCase
         unset($dir['bad']);
     }
 
+    public function testCopyToPathWithNoSeparator()
+    {
+        $cwd = getcwd();
+        chdir(__DIR__);
+        mkdir('copynosep_dest');
+
+        $dir = new Dir('tmp');
+        $dir->copyTo('copynosep_dest');
+
+        $this->assertFileExists('copynosep_dest' . DIRECTORY_SEPARATOR . 'tmp');
+
+        $cleanup = new Dir('copynosep_dest');
+        $cleanup->emptyDir(true);
+        chdir($cwd);
+    }
+
+    public function testOffsetGetByName()
+    {
+        $dir = new Dir(__DIR__ . '/tmp/');
+        $this->assertEquals('test.txt', $dir['test.txt']);
+    }
+
+    public function testConstructorUnreadableDirectoryThrowsPopDirException()
+    {
+        if (function_exists('posix_getuid') && posix_getuid() === 0) {
+            $this->markTestSkipped('Cannot test unreadable directories while running as root.');
+        }
+
+        $base = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('popdirtest_');
+        mkdir($base);
+        mkdir($base . '/locked');
+        file_put_contents($base . '/locked/secret.txt', 'x');
+        chmod($base . '/locked', 0000);
+
+        try {
+            $this->expectException('Pop\Dir\Exception');
+            new Dir($base, ['recursive' => true]);
+        } finally {
+            chmod($base . '/locked', 0755);
+            unlink($base . '/locked/secret.txt');
+            rmdir($base . '/locked');
+            rmdir($base);
+        }
+    }
+
+    public function testEmptyDirUnlinkFailureThrowsClearException()
+    {
+        if (function_exists('posix_getuid') && posix_getuid() === 0) {
+            $this->markTestSkipped('Cannot test unlink permission failures while running as root.');
+        }
+
+        $base = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('popdirtest_');
+        mkdir($base);
+        file_put_contents($base . '/file.txt', 'x');
+        chmod($base, 0555);
+
+        $dir = new Dir($base);
+
+        try {
+            $exception = null;
+            try {
+                $dir->emptyDir();
+            } catch (\Pop\Dir\Exception $e) {
+                $exception = $e;
+            }
+            $this->assertNotNull($exception);
+            $this->assertStringContainsString('file.txt', $exception->getMessage());
+            $this->assertStringNotContainsString('open the directory', $exception->getMessage());
+        } finally {
+            chmod($base, 0755);
+            unlink($base . '/file.txt');
+            rmdir($base);
+        }
+    }
+
+    public function testGetTreeNonRecursiveDoesNotExpandSubdirectories()
+    {
+        $dir  = new Dir(__DIR__ . '/tmp/', ['recursive' => false]);
+        $tree = $dir->getTree();
+        $root = array_key_first($tree);
+
+        $this->assertEquals([], $tree[$root][DIRECTORY_SEPARATOR . 'test']);
+    }
+
+    public function testGetTreeDoesNotFollowSymlinkCycle()
+    {
+        $base = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('popdirtest_');
+        mkdir($base . '/sub', 0777, true);
+        touch($base . '/sub/a.txt');
+        symlink($base, $base . '/sub/loop');
+
+        try {
+            $dir     = new Dir($base, ['recursive' => true]);
+            $tree    = $dir->getTree();
+            $root    = array_key_first($tree);
+            $subTree = $tree[$root][DIRECTORY_SEPARATOR . 'sub'];
+
+            $this->assertEquals([], $subTree[DIRECTORY_SEPARATOR . 'loop']);
+        } finally {
+            unlink($base . '/sub/loop');
+            unlink($base . '/sub/a.txt');
+            rmdir($base . '/sub');
+            rmdir($base);
+        }
+    }
+
+    public function testSetAbsoluteRebuildsFiles()
+    {
+        $dir = new Dir(__DIR__ . '/tmp/');
+        $this->assertContains('test.txt', $dir->getFiles());
+
+        $dir->setAbsolute(true);
+
+        $this->assertContains(__DIR__ . '/tmp' . DIRECTORY_SEPARATOR . 'test.txt', $dir->getFiles());
+    }
+
+    public function testSetRecursiveRebuildsFiles()
+    {
+        $dir = new Dir(__DIR__ . '/tmp/');
+        $this->assertNotContains('foo.txt', $dir->getFiles());
+
+        $dir->setRecursive(true);
+
+        $this->assertContains('foo.txt', $dir->getFiles());
+    }
+
+    public function testSetFilesOnlyRebuildsFiles()
+    {
+        $dir = new Dir(__DIR__ . '/tmp/');
+        $this->assertContains('test', $dir->getFiles());
+
+        $dir->setFilesOnly(true);
+
+        $this->assertNotContains('test', $dir->getFiles());
+    }
+
 }
