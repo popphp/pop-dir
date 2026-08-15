@@ -364,4 +364,30 @@ class DirTest extends TestCase
         $this->assertNotContains('test', $dir->getFiles());
     }
 
+    public function testGetFilesListsDirectoryBeforeItsChildrenWhenRecursive()
+    {
+        $dir = new Dir(__DIR__ . '/tmp', [
+            'relative'  => true,
+            'recursive' => true,
+        ]);
+
+        $files     = $dir->getFiles();
+        $dirIndex  = array_search('test', $files);
+        $fileIndex = array_search('test' . DIRECTORY_SEPARATOR . 'foo.txt', $files);
+
+        $this->assertNotFalse($dirIndex);
+        $this->assertNotFalse($fileIndex);
+        $this->assertLessThan($fileIndex, $dirIndex);
+    }
+
+    public function testGetTreeAndGetFilesAgreeWhenRecursive()
+    {
+        $dir  = new Dir(__DIR__ . '/tmp', ['recursive' => true]);
+        $tree = $dir->getTree();
+        $root = array_key_first($tree);
+
+        $this->assertContains('foo.txt', $tree[$root][DIRECTORY_SEPARATOR . 'test']);
+        $this->assertContains('foo.txt', $dir->getFiles());
+    }
+
 }

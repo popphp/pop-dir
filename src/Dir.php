@@ -137,13 +137,8 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
         $this->files = [];
 
         try {
-            $this->tree[realpath($this->path)] = $this->buildTree(new DirectoryIterator($this->path));
-
-            if ($this->recursive) {
-                $this->traverseRecursively();
-            } else {
-                $this->traverse();
-            }
+            $rootRealPath = realpath($this->path);
+            $this->tree[$rootRealPath] = $this->walkDirectory($this->path, $rootRealPath);
         } catch (\UnexpectedValueException $e) {
             throw new Exception($e->getMessage(), (int)$e->getCode(), $e);
         }
@@ -448,6 +443,27 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     }
 
     /**
+     * Resolve an ArrayAccess offset to its numeric index within $files.
+     *
+     * Accepts either a numeric index or a file/directory name; a non-numeric
+     * offset that doesn't match any entry name is returned unchanged (and will
+     * simply miss the isset()/existence check that follows).
+     *
+     * @param  mixed $offset
+     * @return mixed
+     */
+    protected function resolveOffset(mixed $offset): mixed
+    {
+        if (!is_numeric($offset)) {
+            $found = array_search($offset, $this->files);
+            if ($found !== false) {
+                $offset = $found;
+            }
+        }
+        return $offset;
+    }
+
+    /**
      * ArrayAccess offsetExists
      *
      * @param  mixed $offset
@@ -455,9 +471,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function offsetExists(mixed $offset): bool
     {
-        if (!is_numeric($offset) && in_array($offset, $this->files)) {
-            $offset = array_search($offset, $this->files);
-        }
+        $offset = $this->resolveOffset($offset);
         return isset($this->files[$offset]);
     }
 
@@ -469,9 +483,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function offsetGet(mixed $offset): mixed
     {
-        if (!is_numeric($offset) && in_array($offset, $this->files)) {
-            $offset = array_search($offset, $this->files);
-        }
+        $offset = $this->resolveOffset($offset);
         return (isset($this->files[$offset])) ? $this->files[$offset] : null;
     }
 
@@ -497,9 +509,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      */
     public function offsetUnset(mixed $offset): void
     {
-        if (!is_numeric($offset) && in_array($offset, $this->files)) {
-            $offset = array_search($offset, $this->files);
-        }
+        $offset = $this->resolveOffset($offset);
         if (isset($this->files[$offset])) {
             if (is_dir($this->path . DIRECTORY_SEPARATOR . $this->files[$offset])) {
                 throw new Exception("Error: The file '" . $this->path . DIRECTORY_SEPARATOR . $this->files[$offset] . "' is a directory");
@@ -517,57 +527,62 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     }
 
     /**
-     * Traverse the directory
+     * Walk a directory in a single filesystem pass, building this level's tree
+     * entry (returned) and appending resolved flat $files entries as a side effect.
+     * One shared walk backs both getTree() and getFiles()/iteration, instead of
+     * each being built by a separate traversal of the same directory.
      *
-     * @return void
+     * @param  string       $path
+     * @param  string|false $rootRealPath
+     * @return array
      */
-    protected function traverse(): void
+    protected function walkDirectory(string $path, string|false $rootRealPath): array
     {
-        foreach (new DirectoryIterator($this->path) as $fileInfo) {
-            if (!$fileInfo->isDot()) {
-                $absolutePath = ($fileInfo->isDir()) ?
-                    ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename() . DIRECTORY_SEPARATOR) :
-                    ($this->path . DIRECTORY_SEPARATOR . $fileInfo->getFilename());
+        $tree = [];
 
-                $entry = $this->resolveEntry($fileInfo, $absolutePath);
-                if ($entry !== null) {
-                    $this->files[] = $entry;
+        foreach (new DirectoryIterator($path) as $fileInfo) {
+            if ($fileInfo->isDot()) {
+                continue;
+            }
+
+            $name  = $fileInfo->getBasename();
+            $isDir = $fileInfo->isDir();
+
+            $absolutePath = $this->recursive ?
+                realpath($fileInfo->getPathname()) :
+                ($isDir ?
+                    ($path . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR) :
+                    ($path . DIRECTORY_SEPARATOR . $name));
+
+            $entry = $this->resolveEntry($fileInfo, $absolutePath, $rootRealPath);
+            if ($entry !== null) {
+                $this->files[] = $entry;
+            }
+
+            if ($isDir) {
+                if ($this->recursive && !$fileInfo->isLink()) {
+                    $tree[DIRECTORY_SEPARATOR . $name] = $this->walkDirectory($fileInfo->getPathname(), $rootRealPath);
+                } else {
+                    $tree[DIRECTORY_SEPARATOR . $name] = [];
                 }
+            } else {
+                $tree[] = $name;
             }
         }
+
+        return $tree;
     }
 
     /**
-     * Traverse the directory recursively
-     *
-     * @return void
-     */
-    protected function traverseRecursively(): void
-    {
-        $objects = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($this->path), RecursiveIteratorIterator::SELF_FIRST
-        );
-        foreach ($objects as $fileInfo) {
-            if (($fileInfo->getFilename() != '.') && ($fileInfo->getFilename() != '..')) {
-                $absolutePath = realpath($fileInfo->getPathname());
-
-                $entry = $this->resolveEntry($fileInfo, $absolutePath);
-                if ($entry !== null) {
-                    $this->files[] = $entry;
-                }
-            }
-        }
-    }
-
-    /**
-     * Resolve the stored value for a traversed file/directory entry, honoring the
-     * absolute/relative/filesOnly flags. Shared by traverse() and traverseRecursively().
+     * Resolve the stored value for a walked file/directory entry, honoring the
+     * absolute/relative/filesOnly flags.
      *
      * @param  \SplFileInfo $fileInfo
      * @param  string|false $absolutePath
+     * @param  string|false $rootRealPath
      * @return ?string
      */
-    protected function resolveEntry(\SplFileInfo $fileInfo, string|false $absolutePath): ?string
+    protected function resolveEntry(\SplFileInfo $fileInfo, string|false $absolutePath, string|false $rootRealPath): ?string
     {
         if ($this->filesOnly && $fileInfo->isDir()) {
             return null;
@@ -576,43 +591,11 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
         if ($this->absolute) {
             return ($absolutePath !== false) ? $absolutePath : null;
         } else if ($this->relative) {
-            return ($absolutePath !== false) ?
-                substr($absolutePath, (strlen(realpath($this->path)) + 1)) : null;
+            return ($absolutePath !== false && $rootRealPath !== false) ?
+                substr($absolutePath, (strlen($rootRealPath) + 1)) : null;
         }
 
         return $fileInfo->getFilename();
-    }
-
-    /**
-     * Build the directory tree
-     *
-     * @param  DirectoryIterator $it
-     * @return array
-     */
-    protected function buildTree(DirectoryIterator $it): array
-    {
-        $result = [];
-
-        foreach ($it as $key => $child) {
-            if ($child->isDot()) {
-                continue;
-            }
-
-            $name = $child->getBasename();
-
-            if ($child->isDir()) {
-                if ($this->recursive && !$child->isLink()) {
-                    $subDir = new DirectoryIterator($child->getPathname());
-                    $result[DIRECTORY_SEPARATOR . $name] = $this->buildTree($subDir);
-                } else {
-                    $result[DIRECTORY_SEPARATOR . $name] = [];
-                }
-            } else {
-                $result[] = $name;
-            }
-        }
-
-        return $result;
     }
 
 }
