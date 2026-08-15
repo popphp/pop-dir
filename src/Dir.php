@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Pop PHP Framework (https://www.popphp.org/)
  *
@@ -330,7 +331,7 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
             if ($item->isDir()) {
                 mkdir($destination . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
             } else {
-                copy($item, $destination . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
+                copy($item->getPathname(), $destination . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
             }
         }
     }
