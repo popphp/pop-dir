@@ -303,6 +303,56 @@ class DirTest extends TestCase
         }
     }
 
+    public function testEmptyDirDoesNotFollowSymlinksByDefault()
+    {
+        $base   = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('popdirtest_');
+        $target = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('popdirtarget_');
+
+        mkdir($base);
+        mkdir($target);
+        file_put_contents($target . '/keep.txt', 'x');
+        symlink($target, $base . '/link');
+
+        try {
+            $dir = new Dir($base);
+            $dir->emptyDir();
+
+            $this->assertFileExists($target . '/keep.txt');
+            $this->assertFalse(is_link($base . '/link'));
+        } finally {
+            unlink($target . '/keep.txt');
+            rmdir($target);
+            rmdir($base);
+        }
+    }
+
+    public function testEmptyDirFollowsSymlinksWhenRequested()
+    {
+        $base   = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('popdirtest_');
+        $target = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('popdirtarget_');
+
+        mkdir($base);
+        mkdir($target);
+        file_put_contents($target . '/keep.txt', 'x');
+        symlink($target, $base . '/link');
+
+        try {
+            $dir = new Dir($base);
+            $dir->emptyDir(false, null, true);
+
+            $this->assertFileDoesNotExist($target . '/keep.txt');
+        } finally {
+            if (file_exists($target . '/keep.txt')) {
+                unlink($target . '/keep.txt');
+            }
+            rmdir($target);
+            if (is_link($base . '/link') || file_exists($base . '/link')) {
+                unlink($base . '/link');
+            }
+            rmdir($base);
+        }
+    }
+
     public function testGetTreeNonRecursiveDoesNotExpandSubdirectories()
     {
         $dir  = new Dir(__DIR__ . '/tmp/', ['recursive' => false]);

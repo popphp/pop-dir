@@ -278,6 +278,14 @@ $dir->emptyDir(true);
 can't be deleted (e.g. permissions), it throws `Pop\Dir\Exception` naming the file, and the operation stops at
 that point rather than silently skipping it.
 
+By default, `emptyDir()` does **not** follow symlinked subdirectories — a symlink entry is removed as a link,
+leaving whatever it points to untouched. Pass `true` as the third argument to recurse into a symlinked
+directory and delete its contents too:
+
+```php
+$dir->emptyDir(false, null, true);
+```
+
 [Top](#pop-dir)
 
 Exceptions

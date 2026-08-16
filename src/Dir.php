@@ -357,12 +357,18 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
     /**
      * Empty an entire directory
      *
+     * By default, symlinked subdirectories are not followed — a symlink entry is
+     * removed as a link (its target's contents are left untouched), matching the
+     * non-descending behavior of walkDirectory()/copyTo(). Pass $followSymlinks
+     * as true to recurse into and delete the contents a symlinked directory points to.
+     *
      * @param  bool    $remove
      * @param  ?string $path
+     * @param  bool    $followSymlinks
      * @throws Exception
      * @return void
      */
-    public function emptyDir(bool $remove = false, ?string $path = null): void
+    public function emptyDir(bool $remove = false, ?string $path = null, bool $followSymlinks = false): void
     {
         if ($path === null) {
             $path = $this->path;
@@ -379,8 +385,8 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
                 continue;
             }
             $item = $path . DIRECTORY_SEPARATOR . $obj;
-            if (is_dir($item)) {
-                $this->emptyDir(true, $item);
+            if (is_dir($item) && (!is_link($item) || $followSymlinks)) {
+                $this->emptyDir(true, $item, $followSymlinks);
             } else if (!@unlink($item)) {
                 throw new Exception('Error: Unable to delete the file "' . $item . '"');
             }
