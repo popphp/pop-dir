@@ -244,6 +244,13 @@ class DirTest extends TestCase
         chdir($cwd);
     }
 
+    public function testCopyToNonExistentDestinationThrowsException()
+    {
+        $this->expectException('Pop\Dir\Exception');
+        $dir = new Dir(__DIR__ . '/tmp');
+        $dir->copyTo(__DIR__ . '/does-not-exist');
+    }
+
     public function testOffsetGetByName()
     {
         $dir = new Dir(__DIR__ . '/tmp/');

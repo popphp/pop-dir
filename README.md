@@ -229,7 +229,8 @@ $dir->copyTo('/path/to/destination', false);
 ```
 
 **The destination path must already exist** — `copyTo()` does not create intermediate directories for the
-destination itself, only the source directory's own name underneath it.
+destination itself, only the source directory's own name underneath it. If `$destination` doesn't exist, it
+throws `Pop\Dir\Exception` rather than failing silently.
 
 [Top](#pop-dir)
 

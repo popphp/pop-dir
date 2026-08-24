@@ -305,10 +305,15 @@ class Dir implements \ArrayAccess, \Countable, \IteratorAggregate
      *
      * @param  string $destination
      * @param  bool   $full
+     * @throws Exception
      * @return void
      */
     public function copyTo(string $destination, bool $full = true): void
     {
+        if (!is_dir($destination)) {
+            throw new Exception('Error: The destination path "' . $destination . '" does not exist');
+        }
+
         if ($full) {
             $folder = basename($this->path);
 
